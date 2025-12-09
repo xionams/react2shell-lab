@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>react2shell lab</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  </head>
+  <body style="font-family: system-ui, sans-serif; margin: 0; padding: 0;">
+    <div id="root"></div>
+
+    <!-- React ו-ReactDOM מה-CDN -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- Babel כדי שנוכל לכתוב JSX כאן -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script type="text/babel">
+      const { useState, useEffect } = React;
+
+      function ChatApp() {
+        const [messages, setMessages] = useState([]);
+        const [author, setAuthor] = useState("attacker");
+        const [content, setContent] = useState("");
+
+        // טעינת הודעות
+        useEffect(() => {
+          fetch("/api/messages")
+            .then((r) => r.json())
+            .then(setMessages)
+            .catch((e) => console.error("Failed to load messages", e));
+        }, []);
+
+        // שליחת הודעה
+        const sendMessage = async (e) => {
+          e.preventDefault();
+          if (!content.trim()) return;
+
+          const res = await fetch("/api/messages", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ author, content })
+          });
+
+          const newMsg = await res.json();
+          setMessages((prev) => [...prev, newMsg]);
+          setContent("");
+        };
+
+        return (
+          <div style={{ maxWidth: 800, margin: "40px auto", padding: 20 }}>
+            <h1>Vulnerable React Chat</h1>
+            <p>
+              <strong>Warning:</strong> This lab is intentionally vulnerable to XSS and RCE.
+              Use it only on your own environment.
+            </p>
+
+            <div
+              style={{
+                border: "1px solid #ccc",
+                padding: 10,
+                marginBottom: 20,
+                height: 300,
+                overflowY: "auto",
+                background: "#fafafa"
+              }}
+            >
+              {messages.map((m) => (
+                <div
+                  key={m.id}
+                  style={{
+                    marginBottom: 10,
+                    paddingBottom: 10,
+                    borderBottom: "1px solid #eee"
+                  }}
+                >
+                  <div style={{ fontSize: 12, color: "#555" }}>
+                    <strong>{m.author}</strong> says:
+                  </div>
+
+                  {/* כאן ה-XSS: אנחנו מזריקים HTML לא מסונן */}
+                  <div
+                    style={{ marginTop: 5 }}
+                    dangerouslySetInnerHTML={{ __html: m.content }}
+                  />
+                </div>
+              ))}
+            </div>
+
+            <form onSubmit={sendMessage}>
+              <div style={{ marginBottom: 8 }}>
+                <label>
+                  Author:{" "}
+                  <input
+                    value={author}
+                    onChange={(e) => setAuthor(e.target.value)}
+                    style={{ padding: 4 }}
+                  />
+                </label>
+              </div>
+              <div style={{ marginBottom: 8 }}>
+                <label>
+                  Message (HTML allowed, and not sanitized 😈):
+                  <br />
+                  <textarea
+                    rows="3"
+                    style={{ width: "100%", marginTop: 4 }}
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                  />
+                </label>
+              </div>
+              <button type="submit">Send</button>
+            </form>
+          </div>
+        );
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById("root"));
+      root.render(<ChatApp />);
+    </script>
+  </body>
+</html>

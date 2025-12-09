@@ -1,0 +1,12 @@
+{
+  "name": "react2shell-lab",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:20",
+  "forwardPorts": [3000],
+  "postCreateCommand": "npm install",
+  "portsAttributes": {
+    "3000": {
+      "label": "Vulnerable App",
+      "onAutoForward": "openBrowser"
+    }
+  }
+}
